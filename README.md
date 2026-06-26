@@ -1,27 +1,124 @@
 # LANAtlas
+██╗      █████╗ ███╗   ██╗     █████╗ ████████╗██╗      █████╗ ███████╗
+ ██║     ██╔══██╗████╗  ██║    ██╔══██╗╚══██╔══╝██║     ██╔══██╗██╔════╝
+ ██║     ███████║██╔██╗ ██║    ███████║   ██║   ██║     ███████║███████╗
+ ██║     ██╔══██║██║╚██╗██║    ██╔══██║   ██║   ██║     ██╔══██║╚════██║
+ ███████╗██║  ██║██║ ╚████║    ██║  ██║   ██║   ███████╗██║  ██║███████║
+ ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝
 
-LAN Atlas is a lightweight, cloud-hosted network visibility SaaS designed for solo IT admins and small MSPs. It uses on-prem agents to scan local networks and securely send observations to a centralized cloud service, providing simple dashboards, alerts, and exports that explain what devices exist, what changed, and what needs attention.
-The MVP focuses on proving end-to-end agent → cloud → dashboard workflows while remaining intentionally minimal and production-minded.
+
+What Is LAN Atlas?
+
+LAN Atlas is a lightweight, cloud-hosted network visibility SaaS built for solo IT admins and small MSPs who need to know what's on their network — without enterprise-scale complexity or cost.
+
+A small agent runs on-premises, scans local subnets, and securely forwards observations to a centralized cloud service. From there, operators get simple dashboards, actionable alerts, and clean exports that answer three questions:
+
+
+What devices exist?
+What changed?
+What needs attention?
+
+
+The MVP is intentionally minimal and production-minded, focused on proving a complete agent → cloud → dashboard workflow end-to-end before adding features.
+
+
+Architecture Overview
+
+[ On-Prem Agent ]
+  ARP/ping sweep + port scan
+  Signed HMAC-SHA256 payloads
+  Buffering + retry on disconnect
+        │
+        │  HTTPS (mTLS or API key auth)
+        ▼
+[ Cloud API ]
+  Multi-tenant: Orgs → Sites → Agents → Devices
+  Observation ingestion + heartbeat tracking
+  Alert engine + export layer
+        │
+        ▼
+[ Dashboard ]
+  Per-site device inventory
+  Change feed and open alerts
+  CSV / JSON export
+
 
 Functional Requirements
-On-prem agent that:
-- Scans configured subnets (ping/ARP + limited ports)
-- Sends signed observations and heartbeats to cloud API
 
-Cloud service that:
-- Supports orgs, sites, agents, devices, observations
-- Provides per-site dashboards and alerts
-- Supports CSV/JSON exports
-Alerting for:
-- New device detected
-- Device missing for N hours
-- New open port on existing device
+On-Prem Agent
+
+
+Subnet scanning via ping sweep, ARP, and limited port probing
+Signed observation payloads and periodic heartbeats sent to the cloud API
+Resilient behavior: local buffering and automatic retry on connection loss
+
+
+Cloud Service
+
+
+Multi-tenant data model: Organizations → Sites → Agents → Devices → Observations
+Per-site dashboards and alert feeds
+Data export in CSV and JSON formats
+
+
+Alerting
+
+
+New device detected on a monitored subnet
+Known device absent for a configurable number of hours
+New open port observed on an existing device
+
+
 
 Non-Functional Requirements
-- Secure agent-to-cloud communication (API keys)
-- Multi-tenant data isolation
-- Resilient agent behavior (buffering, retries)
-- Cloud deployment using AWS best practices
-- Clean, maintainable Python codebase
 
-See [Contributor Setup](docs/contributor-setup.md) for local environment and `.env` instructions.
+RequirementApproachAgent-to-cloud securityHMAC-SHA256 signed payloads; API key auth scoped per agentMulti-tenant isolationRow-level tenancy enforced at the data layerAgent resilienceLocal observation buffer with exponential backoff retryCloud infrastructureAWS deployment following Well-Architected Framework principlesCodebase qualityClean, documented Python; reviewed against OWASP ASVS and Top 10
+
+
+Security Posture
+
+LAN Atlas is built with security as a first-class requirement, not an afterthought. Key controls include:
+
+
+OWASP API Security Top 10 (2023) alignment across all agent-to-cloud endpoints
+OWASP ASVS compliance targets for authentication, session, and data validation layers
+NIST SP 800-53 / 800-61 informed incident response and access control design
+CIS Control 1 (Inventory and Control of Enterprise Assets) as the product's core use case
+Agent tokens stored as hashed values — never plaintext — consistent with credential management best practices
+
+
+
+Contributing
+
+We actively welcome open-source contributors at every level.
+
+This project started as a Cloud Security Office Hours collaboration, and that spirit carries forward. If you're learning security engineering, building toward a portfolio, or want to contribute production-grade work to a real system — this is a good place to do it.
+
+Here's how to get involved:
+
+
+Read CONTRIBUTING.md for branch conventions, commit style, and PR expectations
+Set up your local environment via docs/contributor-setup.md
+Browse open issues — anything tagged good first issue or help wanted is ready to be picked up
+Open a draft PR early if you want feedback before finishing
+
+
+We follow a structured Git workflow (feature/, fix/, security/, docs/, chore/ branch prefixes) and use GitHub Projects to track sprint work. You'll have context from day one.
+
+No contribution is too small. Documentation, tests, schema feedback, and security reviews are as valued as feature code.
+
+
+Getting Started
+
+bashgit clone https://github.com/CloudSecurityOfficeHours/LANAtlas.git
+cd LANAtlas
+
+See Contributor Setup for local environment configuration and .env instructions.
+
+
+License
+
+MIT
+
+
+Built openly through Cloud Security Office Hours. Come build with us..
