@@ -7,7 +7,7 @@
  ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝
 ```
 
-> **Open to contributors.** Whether you're a student, a career-changer, or a seasoned engineer — if you care about network security and clean code, there's a place for you here. See [Contributing](#contributing) to get started.
+> **Open to contributors.** Whether you're a student, a career-changer, or a seasoned engineer - if you care about network security and clean code, there's a place for you here. See [Contributing](#contributing) to get started.
 
 ---
 
