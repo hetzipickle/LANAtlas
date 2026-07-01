@@ -1,13 +1,13 @@
-```
- ██╗      █████╗ ███╗   ██╗     █████╗ ████████╗██╗      █████╗ ███████╗
- ██║     ██╔══██╗████╗  ██║    ██╔══██╗╚══██╔══╝██║     ██╔══██╗██╔════╝
- ██║     ███████║██╔██╗ ██║    ███████║   ██║   ██║     ███████║███████╗
- ██║     ██╔══██║██║╚██╗██║    ██╔══██║   ██║   ██║     ██╔══██║╚════██║
- ███████╗██║  ██║██║ ╚████║    ██║  ██║   ██║   ███████╗██║  ██║███████║
- ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝
-```
 
-> **Open to contributors.** Whether you're a student, a career-changer, or a seasoned engineer - if you care about network security and clean code, there's a place for you here. See [Contributing](#contributing) to get started.
+         ██╗      █████╗ ███╗   ██╗     █████╗ ████████╗██╗      █████╗ ███████╗
+         ██║     ██╔══██╗████╗  ██║    ██╔══██╗╚══██╔══╝██║     ██╔══██╗██╔════╝
+         ██║     ███████║██╔██╗ ██║    ███████║   ██║   ██║     ███████║███████╗
+         ██║     ██╔══██║██║╚██╗██║    ██╔══██║   ██║   ██║     ██╔══██║╚════██║
+         ███████╗██║  ██║██║ ╚████║    ██║  ██║   ██║   ███████╗██║  ██║███████║
+         ╚══════╝╚═╝  ╚═╝╚═╝  ╚═══╝    ╚═╝  ╚═╝   ╚═╝   ╚══════╝╚═╝  ╚═╝╚══════╝
+
+
+> **Open to contributors.** We're always looking for new contributors and mentors across every role, whether you're technical or non-technical, just getting started or highly experienced. See [Contributing](#contributing) to get started.
 
 ---
 
