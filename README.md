@@ -27,26 +27,26 @@ The MVP is intentionally minimal and production-minded, focused on proving a com
 
 ## Architecture Overview
 
-```
-[ On-Prem Agent ]
+ [ On-Prem Agent ]
   ARP/ping sweep + port scan
-  Signed HMAC-SHA256 payloads
+  HMAC-SHA256 signed payloads (integrity — proves the bytes weren't altered)
+  API key auth, hashed at rest (authentication — proves it's this agent)
   Buffering + retry on disconnect
         │
-        │  HTTPS (mTLS or API key auth)
+        │  HTTPS (TLS 1.3) — Authorization: Bearer <api_key>
         ▼
 [ Cloud API ]
   Multi-tenant: Orgs → Sites → Agents → Devices
   Observation ingestion + heartbeat tracking
   Alert engine + export layer
+        ▲
+        │  HTTPS (TLS 1.3) — JWT session, HttpOnly + Secure cookie
+        │  OAuth 2.0 / OIDC (Google / Microsoft / Okta) — dashboard users only
         │
-        ▼
 [ Dashboard ]
   Per-site device inventory
   Change feed and open alerts
   CSV / JSON export
-```
-
 ---
 
 ## Functional Requirements
