@@ -17,7 +17,7 @@ The MVP focuses on proving the end-to-end agent → cloud → dashboard workflow
 
 ## Architecture Overview
 
-```
+
 [ On-Prem Agent ]
   ARP/ping sweep + port scan
   HMAC-SHA256 signed payloads (integrity — proves the bytes weren't altered)
@@ -38,7 +38,7 @@ The MVP focuses on proving the end-to-end agent → cloud → dashboard workflow
   Per-site device inventory
   Change feed and open alerts
   CSV / JSON export
-```
+
 
 **Two authentication mechanisms exist because two different threat models exist.** An agent is a headless process running unattended on someone's LAN — no human is present to complete an OAuth redirect, so it authenticates with a long-lived API key, hashed at rest, with a rotation path. A dashboard user is a person at a browser — OAuth lets a third party (Google/Microsoft/Okta) own the credential lifecycle so LAN Atlas never has to. (ASVS V10.2 covers the OAuth client side of this; V10.3 covers how the resource server — our API — validates the token it receives.)
 
