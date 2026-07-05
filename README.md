@@ -1,121 +1,119 @@
-> **Open to contributors.** We're always looking for new contributors and mentors across every role, whether you're technical or non-technical, just getting started or highly experienced. See [Contributing](#contributing) to get started.
-
 # LAN Atlas
 
-LAN Atlas is a lightweight, cloud-hosted network visibility SaaS designed for solo IT admins and small MSPs. On-prem agents scan local networks and securely send observations to a centralized cloud service, which provides dashboards, alerts, and exports that explain what devices exist, what changed, and what needs attention.
+LAN Atlas is a lightweight, cloud-hosted network visibility SaaS for solo IT admins and small MSPs. On-prem agents scan local networks and securely send observations to a centralized cloud service, which provides dashboards, alerts, and exports that answer three questions: what devices exist, what changed, and what needs attention.
 
-The MVP focuses on proving the end-to-end agent → cloud → dashboard workflow while remaining intentionally minimal and production-minded — every schema and architecture decision is made to be extended later without restructuring.
+Development happens in the open through **Cloud Security Office Hours** ([`CloudSecurityOfficeHours`](https://github.com/CloudSecurityOfficeHours) on GitHub) as a hands-on exercise in building a production-minded system against real security frameworks — not a toy project with security bolted on after the fact.
 
-## Architecture Overview
+---
 
+## Security frameworks in active use
 
-[ On-Prem Agent ]
-  ARP/ping sweep + port scan
-  HMAC-SHA256 signed payloads (integrity — proves the bytes weren't altered)
-  API key auth, hashed at rest (authentication — proves it's this agent)
-  Buffering + retry on disconnect
-        │
-        │  HTTPS (TLS 1.3) — Authorization: Bearer <api_key>
-        ▼
-[ Cloud API ]
-  Multi-tenant: Orgs → Sites → Agents → Devices
-  Observation ingestion + heartbeat tracking
-  Alert engine + export layer
-        ▲
-        │  HTTPS (TLS 1.3) — JWT session, HttpOnly + Secure cookie
-        │  OAuth 2.0 / OIDC (Google / Microsoft / Okta) — dashboard users only
-        │
-[ Dashboard ]
-  Per-site device inventory
-  Change feed and open alerts
-  CSV / JSON export
+Every control decision in this project is checked against at least one of:
 
+- **OWASP Top 10 (2025)** — web dashboard
+- **OWASP API Security Top 10 (2023)** — agent-to-cloud API surface
+- **OWASP ASVS** — verification-level requirements (sessions, auth, encoding)
+- **NIST SP 800-53 / SP 800-61** — control baselines and incident handling
+- **CIS Controls v8.1** (Control 1, Control 8, Control 16) — cross-check against schema/asset and logging gaps
+- **MITRE ATT&CK** — threat modeling reference for the agent trust boundary
 
-**Two authentication mechanisms exist because two different threat models exist.** An agent is a headless process running unattended on someone's LAN — no human is present to complete an OAuth redirect, so it authenticates with a long-lived API key, hashed at rest, with a rotation path. A dashboard user is a person at a browser — OAuth lets a third party (Google/Microsoft/Okta) own the credential lifecycle so LAN Atlas never has to. (ASVS V10.2 covers the OAuth client side of this; V10.3 covers how the resource server — our API — validates the token it receives.)
+Control status is tracked continuously in `LAN_Atlas_OWASP_Controls_v3.docx` (v3.0), gap by gap, session by session. That document — not this README — is the authoritative source of truth for control status. This README summarizes it.
 
-HMAC-SHA256 signing on observation payloads is a **separate** control from either of the above — it protects integrity in transit and gives the database a tamper/replay check independent of who sent the request.
+---
 
-> **Implementation status:** the architecture above reflects the finalized design in `LAN_Atlas_OWASP_Controls_v3.docx`. As of this revision, agent API key hashing, session revocation, and OAuth identity anchoring are implemented in schema and partially in code. JWT expiry/refresh rotation, HttpOnly/Secure cookie enforcement, and OAuth provider tenant restrictions are designed but not yet coded — tracked as "Planned" in the controls doc, not "Implemented." Treat this README as the target state, and the controls doc as the source of truth for what's actually shipped.
-
-## Functional Requirements
+## Functional requirements
 
 **On-prem agent:**
-- Scans configured subnets (ping sweep, ARP, limited port probing)
-- Signs every observation payload with HMAC-SHA256 before transmission — server rejects on hash mismatch
-- Authenticates using a per-agent API key; server stores only the SHA-256 hash, never the plaintext
-- Buffers observations locally and retries with exponential backoff on connection loss
+- Scans configured subnets (ARP/ping + limited port checks)
+- Signs observations and heartbeats (HMAC-SHA256) before sending to the cloud API
+- Buffers locally and retries with exponential back-off during cloud outages
 
 **Cloud service:**
-- Multi-tenant data model: Organizations → Sites → Agents → Devices → Observations
-- Dashboard users authenticate via OAuth 2.0 / OIDC (Google, Microsoft, Okta) — **LAN Atlas never receives, transmits, or stores a password**
-- Issues its own short-lived JWT after OAuth login, plus a server-side session record (hashed token, expiry, revocation flag) so sessions can be killed independent of token expiry
-- Per-site dashboards and alert feeds
-- CSV / JSON export
+- Supports organizations, sites, agents, devices, observations (multi-tenant)
+- Per-site dashboards and alerts
+- CSV/JSON exports
 
-**Alerting:**
-- New device detected on a monitored subnet
-- Known device absent for a configurable number of hours
-- New open port observed on an existing device
+**Alerting for:**
+- New device detected
+- Device missing for N hours
+- New open port on an existing device
 
-## Non-Functional Requirements
+## Non-functional requirements
 
-| Requirement | Approach |
-|---|---|
-| Agent-to-cloud integrity | HMAC-SHA256 signed payloads; server-side hash comparison rejects tampered/replayed observations |
-| Agent-to-cloud authentication | Per-agent API key, SHA-256 hashed at rest, versioned for rotation without reissuing all agents |
-| Dashboard user authentication | OAuth 2.0 / OIDC (Google / Microsoft / Okta); short-lived JWT + server-revocable session; no local password storage |
-| Multi-tenant isolation | Row-level tenancy enforced at the data layer; tenant ID sourced only from the verified session, never the request body |
-| Agent resilience | Local observation buffer with exponential backoff retry |
-| Cloud infrastructure | AWS deployment following Well-Architected Framework principles |
-| Codebase quality | Clean, documented Python; reviewed against OWASP ASVS and OWASP Top 10 |
+- Secure agent-to-cloud communication (hashed API keys, HMAC-signed payloads, TLS 1.3)
+- Multi-tenant data isolation (`organization_id` sourced from verified session, never request body)
+- Resilient agent behavior (local buffering, retries)
+- Cloud deployment on AWS following least-privilege and defense-in-depth practices
+- Clean, typed, linted, tested Python codebase
 
-## Security Posture
+---
 
-LAN Atlas is built with security as a first-class requirement, tracked systematically rather than added ad hoc. Frameworks in active use:
+## Current security posture
 
-- **OWASP Top 10 (2025)** — web dashboard surface
-- **OWASP API Security Top 10 (2023)** — agent-to-cloud API surface
-- **OWASP ASVS** — authentication, session, and validation control detail, including ASVS V10 (OAuth/OIDC) for the dashboard auth flow
-- **NIST SP 800-53 / 800-61** — incident response and access control design
-- **CIS Control 1** (Inventory and Control of Enterprise Assets) — the product's core use case
-- **MITRE ATT&CK** — threat modeling reference for the agent-to-cloud trust boundary
+| Control area | Status | Notes |
+|---|---|---|
+| **A01 — Broken Access Control** | ✅ Implemented | FastAPI RBAC middleware: session-validated `get_current_user` dependency, `require_role()` factory, tenant scope from verified session only, 404-not-403 pattern to prevent resource enumeration. |
+| **A02 — Security Misconfiguration** | 🟡 Partial | `fn_set_updated_at()` triggers, `.env`-sourced secrets, DB-layer FK/CHECK enforcement. AWS Secrets Manager migration and security-header/CORS policy still open. |
+| **A03 — Software Supply Chain Failures** | 🟡 Partial | Dependabot (pip + GitHub Actions ecosystems) implemented. Super Linter runs in CI but does **not** close dependency CVE scanning, hash verification, signed commits, or artifact signing — those remain open. `pip-audit --strict` integration is next up (see Roadmap). |
+| **A04 — Insecure Design** | ✅ Implemented | `slowapi` + ElastiCache Redis rate limiting keyed by agent ID; threshold-based volume anomaly detection on `idx_obs_agent_time`; bulk-resolve gated to admin role with alert ceiling + re-auth window. |
+| **A06 / API4 — Rate Limiting & Resource Abuse** | ✅ Implemented | Same rate-limiting stack as above, applied to the agent-to-cloud API surface. |
+| **A07 — Auth & Session Failures** | ✅ Implemented | OAuth 2.0/OIDC (Google/Microsoft/Okta), server-side `sessions` table with `token_hash`/`expires_at`/`revoked_at`, `failed_login_count` + `lockout_until` brute-force tracking. |
+| **A08 — Data Integrity Failures** | 🟡 Partial | `payload_hash` (HMAC) on every observation for tamper/dedup detection. **Gap:** `agent_token` is currently stored plaintext — should be hashed consistent with the `api_key_hash` pattern on `agents`. |
+| **A09 — Logging & Alerting Failures** | ⚪ Not started | Audit data exists (`observations`, `alerts`, `analyst_notes`, `sessions`) but there's no structured application-level logging framework and nothing ships to CloudWatch yet. |
+| **Replay protection (agent payloads)** | ⚪ Planned — Sprint 3 | HMAC-SHA256 replay protection is the next hardening item on the agent-to-cloud path. |
 
-Key controls:
+Legend: ✅ Implemented · 🟡 Partial (closes some but not all of the control) · ⚪ Not started / planned
 
-- **No password storage, by design.** Dashboard authentication delegates entirely to third-party OAuth providers. There is no `password_hash` column and no password-reset flow to secure, because the credential never enters LAN Atlas's trust boundary — this removes a class of risk (credential stuffing, weak-password enforcement, breach-database reuse checks) rather than mitigating it.
-- **Agent API keys are stored hashed only** (SHA-256, hex-encoded), never plaintext, with a version counter so a compromised key can be rotated without downtime.
-- **Tenant isolation is sourced from the verified session, never the request body** — enforced consistently in API middleware.
-- **404-not-403 pattern** on protected resources prevents leaking resource existence to unauthorized callers.
+---
 
-### Additional frameworks under consideration
+## CI/CD pipeline
 
-These sit outside the two Top-10 lists above and are being folded into the v3.0 controls doc as separate tracked gaps rather than new categories:
+Four-job GitHub Actions pipeline, each job mapped to the OWASP gap it closes:
 
-| Control | Why it matters here |
-|---|---|
-| ASVS V13.3 — Secret Management | Where OAuth client secrets, JWT signing keys, and DB credentials live in production (target: AWS Secrets Manager / Parameter Store, not `.env`) |
-| API Security Top 10 API9:2023 — Improper Inventory Management | Tracking which API versions/endpoints are live vs deprecated as the agent and dashboard APIs evolve |
-| CIS Control 8 — Audit Log Management | The industry framing of an existing tracked gap: no structured logging or CloudWatch shipping yet |
-| CIS Control 16 — Application Software Security | The industry framing of an existing tracked gap: dependency scanning, signed commits, artifact signing not yet implemented |
-| CIS Control 4 — Secure Configuration | Debug mode, directory listing, and API docs endpoints disabled in production before first deploy |
+| Job | Tools | Closes |
+|---|---|---|
+| Code quality | `ruff`, `mypy` | Baseline code hygiene / type safety |
+| Security scanning | `pip-audit --strict`, Gitleaks, Super Linter + Hadolint | Secret leakage, Dockerfile hygiene, partial A03 coverage |
+| Test | `pytest` + PostgreSQL service container + Alembic migrations + coverage enforcement | Regression safety on schema and business logic |
+| Build & deploy | Docker build → ECR, gated to `main` | Controlled, reproducible deployment artifact |
 
-See `LAN_Atlas_OWASP_Controls_v3.docx` for the full gap-by-gap status (Implemented / Planned / Partial / Not Started) across every control above.
+Dependabot is configured for both the `pip` and GitHub Actions ecosystems.
+
+**Open items:** dependency hash verification, signed commits, and CI/CD artifact signing are not yet implemented — tracked under A03.
+
+---
+
+## Technology stack
+
+| Layer | Technology | Purpose |
+|---|---|---|
+| API & Runtime | FastAPI ≥ 0.136 · Python 3 · Uvicorn | Async REST API, Pydantic validation on all request schemas |
+| Database | PostgreSQL 18 · SQLAlchemy 2 · Alembic | Production DB, parameterized queries, migrations |
+| Security | pwdlib (Argon2id) · PyJWT[crypto] · cryptography 44 | Password hashing (pre-OAuth fallback), JWT signing, HMAC-SHA256 |
+| Auth | OAuth 2.0 / OIDC (Google, Microsoft, Okta) | Third-party identity; `oauth_provider` + `oauth_subject` as identity anchor |
+| Rate limiting | `slowapi` · AWS ElastiCache Redis | Per-agent request throttling, anomaly detection |
+| Background jobs | Dramatiq · Redis | Async alert email dispatch |
+| Cloud | AWS (RDS, ECR, ElastiCache, CloudWatch) · boto3 | Deployment target, logs, alarms |
+| Agent (on-prem) | Python 3 · scapy/ARP · SQLite buffer | Scanning, payload signing, local buffering, retry logic |
+| Testing | pytest · pytest-cov · ruff · mypy | Unit/integration tests, coverage, linting, type safety |
+| CI/CD | GitHub Actions · Docker · Dependabot | Automated quality/security gates + container build |
+
+Schema: PostgreSQL v2 in production on AWS RDS — 15 tables, 31 named foreign keys, 32 named CHECK constraints. Full reference in `LAN_Atlas_LLD.docx`.
+
+---
+
+## Roadmap
+
+1. **A03 gap closure** — resume the tabled `pip-audit` discussion; wire `pip-audit --strict` into the security-scanning job.
+2. **Sprint 3 — HMAC-SHA256 replay protection** on agent-to-cloud payloads.
+3. **`agent_token` hashing** — bring it in line with the existing `api_key_hash` pattern (A08 gap).
+4. Continue the systematic OWASP controls walkthrough (v3.0 doc), gap by gap.
+5. README refresh after Sprint 3 lands.
+
+---
 
 ## Contributing
 
-We actively welcome open-source contributors at every level.
+See [Contributor Setup](docs/contributor-setup.md) for local environment and `.env` instructions. Branch naming, PR templates, and commit message conventions (present-tense type prefixes) are defined in `CONTRIBUTING.md`.
 
-This project started as a Cloud Security Office Hours collaboration, and that spirit carries forward. If you're learning security engineering, building toward a portfolio, or want to contribute production-grade work to a real system — this is a good place to do it.
-
-Here's how to get involved:
-- Read `CONTRIBUTING.md` for branch conventions, commit style, and PR expectations
-- Set up your local environment via [Contributor Setup](docs/contributor-setup.md) for local environment and `.env` instructions
-- Browse open issues — anything tagged `good first issue` or `help wanted` is ready to be picked up
-- Open a draft PR early if you want feedback before finishing
-
-We follow a structured Git workflow (`feature/`, `fix/`, `security/`, `docs/`, `chore/` branch prefixes) and use GitHub Projects to track sprint work. You'll have context from day one.
-
-No contribution is too small. Documentation, tests, schema feedback, and security reviews are as valued as feature code.
-
-
-*Built openly through Cloud Security Office Hours. Come build with us.*
+Schema conventions: CHECK constraints are preferred over native ENUMs for portability; lookup/seed tables (e.g. `alert_types`) are preferred over hardcoded value sets for flexibility.
