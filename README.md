@@ -1,8 +1,12 @@
 # LAN Atlas
 
-LAN Atlas is a lightweight, cloud-hosted network visibility SaaS for solo IT admins and small MSPs. On-prem agents scan local networks and securely send observations to a centralized cloud service, which provides dashboards, alerts, and exports that answer three questions: what devices exist, what changed, and what needs attention.
+LAN Atlas is a lightweight, cloud-hosted network visibility SaaS for solo IT admins and small MSPs. On-prem agents scan local networks and securely send observations to a centralized cloud service, which provides dashboards, alerts, and exports that answer three questions: 
 
-Development happens in the open through **Cloud Security Office Hours** ([`CloudSecurityOfficeHours`](https://github.com/CloudSecurityOfficeHours) on GitHub) as a hands-on exercise in building a production-minded system against real security frameworks — not a toy project with security bolted on after the fact.
+- what devices exist?
+- what changed?
+- what needs attention?
+
+Development happens in the open through **Cloud Security Office Hours** ([`CloudSecurityOfficeHours`](https://github.com/CloudSecurityOfficeHours) on GitHub) as a hands-on exercise in building a production-minded system against real security frameworks.
 
 ---
 
@@ -17,7 +21,7 @@ Every control decision in this project is checked against at least one of:
 - **CIS Controls v8.1** (Control 1, Control 8, Control 16) — cross-check against schema/asset and logging gaps
 - **MITRE ATT&CK** — threat modeling reference for the agent trust boundary
 
-Control status is tracked continuously in `LAN_Atlas_OWASP_Controls_v3.docx` (v3.0), gap by gap, session by session. That document — not this README — is the authoritative source of truth for control status. This README summarizes it.
+Control status is tracked continuously in `LAN_Atlas_OWASP_Controls_v3.docx` (v3.0), gap by gap, session by session. That document is the authoritative source of truth for control status. This README summarizes it.
 
 ---
 
@@ -66,23 +70,6 @@ Legend: ✅ Implemented · 🟡 Partial (closes some but not all of the control)
 
 ---
 
-## CI/CD pipeline
-
-Four-job GitHub Actions pipeline, each job mapped to the OWASP gap it closes:
-
-| Job | Tools | Closes |
-|---|---|---|
-| Code quality | `ruff`, `mypy` | Baseline code hygiene / type safety |
-| Security scanning | `pip-audit --strict`, Gitleaks, Super Linter + Hadolint | Secret leakage, Dockerfile hygiene, partial A03 coverage |
-| Test | `pytest` + PostgreSQL service container + Alembic migrations + coverage enforcement | Regression safety on schema and business logic |
-| Build & deploy | Docker build → ECR, gated to `main` | Controlled, reproducible deployment artifact |
-
-Dependabot is configured for both the `pip` and GitHub Actions ecosystems.
-
-**Open items:** dependency hash verification, signed commits, and CI/CD artifact signing are not yet implemented — tracked under A03.
-
----
-
 ## Technology stack
 
 | Layer | Technology | Purpose |
@@ -96,20 +83,11 @@ Dependabot is configured for both the `pip` and GitHub Actions ecosystems.
 | Cloud | AWS (RDS, ECR, ElastiCache, CloudWatch) · boto3 | Deployment target, logs, alarms |
 | Agent (on-prem) | Python 3 · scapy/ARP · SQLite buffer | Scanning, payload signing, local buffering, retry logic |
 | Testing | pytest · pytest-cov · ruff · mypy | Unit/integration tests, coverage, linting, type safety |
-| CI/CD | GitHub Actions · Docker · Dependabot | Automated quality/security gates + container build |
+| CI/CD | GitHub Actions · Docker* · Dependabot | Automated quality/security gates + container build |
 
-Schema: PostgreSQL v2 in production on AWS RDS — 15 tables, 31 named foreign keys, 32 named CHECK constraints. Full reference in `LAN_Atlas_LLD.docx`.
+Schema: PostgreSQL in production on AWS RDS- 15 tables, 31 named foreign keys, 32 named CHECK constraints. Full reference in `LAN_Atlas_LLD.docx`.
 
----
-
-## Roadmap
-
-1. **A03 gap closure** — resume the tabled `pip-audit` discussion; wire `pip-audit --strict` into the security-scanning job.
-2. **Sprint 3 — HMAC-SHA256 replay protection** on agent-to-cloud payloads.
-3. **`agent_token` hashing** — bring it in line with the existing `api_key_hash` pattern (A08 gap).
-4. Continue the systematic OWASP controls walkthrough (v3.0 doc), gap by gap.
-5. README refresh after Sprint 3 lands.
-
+* Use of Docker not finalized 
 ---
 
 ## Contributing
