@@ -94,4 +94,3 @@ Schema: PostgreSQL in production on AWS RDS- 15 tables, 31 named foreign keys, 3
 
 See [Contributor Setup](docs/contributor-setup.md) for local environment and `.env` instructions. Branch naming, PR templates, and commit message conventions (present-tense type prefixes) are defined in `CONTRIBUTING.md`.
 
-Schema conventions: CHECK constraints are preferred over native ENUMs for portability; lookup/seed tables (e.g. `alert_types`) are preferred over hardcoded value sets for flexibility.
